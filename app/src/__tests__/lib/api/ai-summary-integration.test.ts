@@ -160,6 +160,7 @@ const VALID_AI_RESPONSE: AiSummaryResponse = {
     ],
     afflux: null,
     hecras: null,
+    suitability: null,
   },
 };
 
@@ -183,7 +184,7 @@ describe('AI Summary Integration — /api/ai-summary route with test bridge data
     expect(payload.methods.wspro).toHaveLength(2);
 
     // Act: call the route handler directly
-    const { POST } = await import('@/app/api/ai-summary/route');
+    const { POST } = await import('@/legacy/api/ai-summary/route');
     const request = new Request('http://localhost/api/ai-summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -233,7 +234,7 @@ describe('AI Summary Integration — /api/ai-summary route with test bridge data
       }
 
       // Route should return 200
-      const { POST } = await import('@/app/api/ai-summary/route');
+      const { POST } = await import('@/legacy/api/ai-summary/route');
       const request = new Request('http://localhost/api/ai-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -248,7 +249,7 @@ describe('AI Summary Integration — /api/ai-summary route with test bridge data
     mockCallOpenAI.mockResolvedValue(JSON.stringify({ wrong: 'shape' }));
 
     const payload = buildPayloadFromBridge(0);
-    const { POST } = await import('@/app/api/ai-summary/route');
+    const { POST } = await import('@/legacy/api/ai-summary/route');
     const request = new Request('http://localhost/api/ai-summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -267,7 +268,7 @@ describe('AI Summary Integration — /api/ai-summary route with test bridge data
     );
 
     const payload = buildPayloadFromBridge(0);
-    const { POST } = await import('@/app/api/ai-summary/route');
+    const { POST } = await import('@/legacy/api/ai-summary/route');
     const request = new Request('http://localhost/api/ai-summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -286,7 +287,7 @@ describe('AI Summary Integration — /api/ai-summary route with test bridge data
     );
 
     const payload = buildPayloadFromBridge(0);
-    const { POST } = await import('@/app/api/ai-summary/route');
+    const { POST } = await import('@/legacy/api/ai-summary/route');
     const request = new Request('http://localhost/api/ai-summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -303,7 +304,7 @@ describe('AI Summary Integration — /api/ai-summary route with test bridge data
     mockCallOpenAI.mockResolvedValue('This is not JSON at all');
 
     const payload = buildPayloadFromBridge(0);
-    const { POST } = await import('@/app/api/ai-summary/route');
+    const { POST } = await import('@/legacy/api/ai-summary/route');
     const request = new Request('http://localhost/api/ai-summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

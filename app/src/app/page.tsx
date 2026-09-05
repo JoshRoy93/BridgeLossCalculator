@@ -1,9 +1,5 @@
-import { MainTabs } from '@/components/main-tabs';
+import { Workspace } from "@/v2/workspace";
 
 export default function Home() {
-  return (
-    <div className="flex flex-col min-h-screen">
-      <MainTabs />
-    </div>
-  );
+  return <Workspace />;
 }

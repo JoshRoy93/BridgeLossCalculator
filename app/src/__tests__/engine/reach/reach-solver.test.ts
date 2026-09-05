@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { BridgeProject, FlowProfile, CalculationResults, MethodResult } from '@/engine/types';
 
 // Mock runAllMethods so we don't need the full calculation engine

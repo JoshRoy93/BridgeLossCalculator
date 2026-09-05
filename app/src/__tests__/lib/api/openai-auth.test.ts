@@ -41,7 +41,7 @@ describe('resolveOpenAICredentials', () => {
     process.env.OPENAI_API_KEY = 'sk-test123';
     process.env.OPENAI_OAUTH_TOKEN = 'jwt-token-abc';
     const creds = await resolveOpenAICredentials();
-    expect(creds.type).toBe('platform');
+    expect(creds?.type).toBe('platform');
   });
 
   it('reads ~/.codex/auth.json when no env vars set', async () => {

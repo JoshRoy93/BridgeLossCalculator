@@ -3,3 +3,6 @@
 __pycache__/
 *.pyc
 BridgeLossCalculator.xlsm
+output/
+app/.playwright-cli/
+app/audit-v2.json
