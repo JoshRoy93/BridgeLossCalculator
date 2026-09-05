@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
   ArrowDownToLine,
@@ -41,17 +41,36 @@ import {
   Scenarios,
 } from "./components/results";
 import "./workspace.css";
+import { Simulation } from "./components/simulation";
+import { Hydrology } from "./components/hydrology";
+import { assessmentSteps, inputIssuePage } from "./guidance";
+import { StepActions, WorkflowGuide } from "./components/workflow-guide";
+import { DemoGallery, DemoSourceBasis } from "./components/demo-gallery";
+import { createDemoProject } from "./demo-bridges";
 
 const pages = [
   { id: "overview", name: "Overview", icon: Activity, group: "Workspace" },
-  { id: "project", name: "Project details", icon: MapPin, group: "Define" },
+  { id: "examples", name: "Example bridges", icon: BookOpen },
+  {
+    id: "project",
+    name: "Project details",
+    icon: MapPin,
+    group: "Assessment steps",
+  },
   { id: "geometry", name: "Survey sections", icon: Layers3 },
   { id: "bridge", name: "Bridge & losses", icon: Settings2 },
   { id: "flows", name: "Flow events", icon: Waves },
-  { id: "results", name: "Results & checks", icon: Activity, group: "Assess" },
-  { id: "scenarios", name: "Alternatives", icon: GitCompareArrows },
+  { id: "results", name: "Results & checks", icon: Activity },
   { id: "review", name: "Engineering review", icon: ClipboardCheck },
   { id: "report", name: "Report & export", icon: FileText },
+  {
+    id: "hydrology",
+    name: "Hydrology helper",
+    icon: Waves,
+    group: "Optional tools",
+  },
+  { id: "simulation", name: "3D & what-if", icon: Layers3 },
+  { id: "scenarios", name: "Alternatives", icon: GitCompareArrows },
 ];
 export function Workspace() {
   const {
@@ -69,23 +88,23 @@ export function Workspace() {
   const [page, setPage] = useState("overview"),
     [message, setMessage] = useState(""),
     [errors, setErrors] = useState<string[]>([]),
+    [pendingPage, setPendingPage] = useState<string | null>(null),
     [busy, setBusy] = useState(false);
   const p = workspace?.projects.find((p) => p.id === workspace.activeId);
+  useEffect(() => {
+    document.getElementById("main-workspace")?.focus({ preventScroll: true });
+  }, [page, p?.id]);
   function navigate(target: string) {
-    const invalid =
-      document.querySelector<HTMLInputElement>(".blc input:invalid");
-    if (invalid) {
-      invalid.reportValidity();
-      invalid.focus();
+    if (target === page) return;
+    if (document.querySelector('[data-unsaved="true"]')) {
+      setPendingPage(target);
+      window.scrollTo({ top: 0 });
       return;
     }
-    if (
-      document.querySelector('[data-unsaved="true"]') &&
-      !window.confirm(
-        "Discard the unapplied survey coordinates? Apply them first to keep them.",
-      )
-    )
-      return;
+    openPage(target);
+  }
+  function openPage(target: string) {
+    setPendingPage(null);
     setPage(target);
     setMessage("");
     setErrors([]);
@@ -100,24 +119,33 @@ export function Workspace() {
     const invalid =
       document.querySelector<HTMLInputElement>(".blc input:invalid");
     if (invalid) {
+      setMessage(
+        "Calculation needs a valid value in the highlighted field. Correct it below. You can still visit other steps.",
+      );
       invalid.reportValidity();
       invalid.focus();
       return;
     }
     if (document.querySelector('[data-unsaved="true"]')) {
-      setMessage("Apply the survey coordinates before running the assessment.");
+      setMessage(
+        "These edits have not been applied to the project. Use Apply coordinates for survey edits, or Apply to project for what-if inputs. Revert or reset them to calculate the saved inputs.",
+      );
+      window.scrollTo({ top: 0 });
       return;
     }
     const errors = validate(p.inputs);
     setErrors(errors);
     if (errors.length) {
       setMessage("Resolve the input checks below before running.");
+      window.scrollTo({ top: 0 });
       return;
     }
     setBusy(true);
     try {
       const result = await runCalculation(p.inputs);
       recordRun(p.id, result);
+      setPage("results");
+      window.scrollTo({ top: 0 });
       const unsupported = result.results.filter(
         (r) => r.status !== "ok",
       ).length;
@@ -161,6 +189,7 @@ export function Workspace() {
       </div>
     );
   const props = { project: p, update: change, notify: setMessage };
+  const inputIssues = validate(p.inputs);
   const active = pages.find((item) => item.id === page);
   return (
     <div className="blc">
@@ -203,13 +232,51 @@ export function Workspace() {
                 aria-current={page === item.id ? "page" : undefined}
                 onClick={() => navigate(item.id)}
               >
-                <item.icon size={17} />
+                {assessmentSteps.some((step) => step.page === item.id) ? (
+                  <span className="nav-step">
+                    {assessmentSteps.findIndex(
+                      (step) => step.page === item.id,
+                    ) + 1}
+                  </span>
+                ) : (
+                  <item.icon size={17} />
+                )}
                 <span>{item.name}</span>
                 {page === item.id && <i />}
               </button>
             </div>
           ))}
         </nav>
+        <label className="mobile-step-nav">
+          <span>Go to step or tool</span>
+          <select
+            aria-label="Go to step or tool"
+            value={page}
+            onChange={(e) => navigate(e.target.value)}
+          >
+            <option value="overview">Overview</option>
+            <option value="examples">Example bridges</option>
+            <optgroup label="Assessment steps">
+              {assessmentSteps.map((step, i) => (
+                <option key={step.page} value={step.page}>
+                  {i + 1}. {step.title}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Optional tools">
+              {pages
+                .filter((item) =>
+                  ["hydrology", "simulation", "scenarios"].includes(item.id),
+                )
+                .map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+            </optgroup>
+            <option value="library">Your assessments</option>
+          </select>
+        </label>
         <div className="sidebar-bottom">
           <BookOpen size={18} />
           <div>
@@ -243,17 +310,38 @@ export function Workspace() {
               <ArrowDownToLine size={15} />
               Backup
             </button>
-            <button
-              className="button primary"
-              disabled={busy || page === "library"}
-              onClick={run}
-            >
-              <Play size={15} fill="currentColor" />
-              {busy ? "Calculating…" : "Run assessment"}
-            </button>
+            {page !== "library" && page !== "examples" && (
+              <button className="button primary" disabled={busy} onClick={run}>
+                <Play size={15} fill="currentColor" />
+                {busy ? "Calculating…" : "Run assessment"}
+              </button>
+            )}
           </div>
         </header>
         <main id="main-workspace" tabIndex={-1} className="workspace-content">
+          {pendingPage && (
+            <div className="notice draft-notice" role="alert">
+              <div>
+                <strong>You have unapplied edits on this step</strong>
+                <p>
+                  Apply or revert them before leaving. Leaving now discards only
+                  these drafts; applied project values are kept.
+                </p>
+              </div>
+              <button
+                className="button secondary"
+                onClick={() => setPendingPage(null)}
+              >
+                Stay and edit
+              </button>
+              <button
+                className="button quiet"
+                onClick={() => openPage(pendingPage)}
+              >
+                Discard drafts and leave
+              </button>
+            </div>
+          )}
           {storageError && (
             <div className="notice error" role="alert">
               {storageError}
@@ -305,7 +393,15 @@ export function Workspace() {
               <strong>Input checks</strong>
               <ul>
                 {errors.map((error) => (
-                  <li key={error}>{error}</li>
+                  <li key={error}>
+                    <button
+                      className="issue-link"
+                      onClick={() => navigate(inputIssuePage(error))}
+                    >
+                      {error}
+                      <ChevronRight size={14} />
+                    </button>
+                  </li>
                 ))}
               </ul>
             </div>
@@ -317,6 +413,37 @@ export function Workspace() {
             </div>
           )}
           <div className="workspace-page" key={`${p.id}-${page}`}>
+            {page === "examples" && (
+              <DemoGallery
+                load={(id) => {
+                  try {
+                    add(createDemoProject(id));
+                    openPage("overview");
+                    setMessage(
+                      "Example loaded as a separate assessment. Review its source record, then run the flow cases or explore the 3D model.",
+                    );
+                  } catch (error) {
+                    setMessage(
+                      error instanceof Error
+                        ? error.message
+                        : "Could not load example.",
+                    );
+                  }
+                }}
+              />
+            )}
+            {p.demoBasis &&
+              !["library", "examples", "simulation"].includes(page) && (
+                <DemoSourceBasis basis={p.demoBasis} inputs={p.inputs} />
+              )}
+            <WorkflowGuide
+              project={p}
+              page={page}
+              navigate={navigate}
+              run={run}
+              busy={busy}
+              issues={inputIssues}
+            />
             {page === "overview" && (
               <Overview project={p} navigate={navigate} />
             )}
@@ -324,9 +451,11 @@ export function Workspace() {
             {page === "geometry" && <GeometryEditor {...props} />}
             {page === "bridge" && <BridgeEditor {...props} />}
             {page === "flows" && <FlowEditor {...props} />}
-            {page === "results" && <Results {...props} />}
+            {page === "hydrology" && <Hydrology {...props} />}
+            {page === "results" && <Results {...props} navigate={navigate} />}
+            {page === "simulation" && <Simulation {...props} />}
             {page === "scenarios" && <Scenarios {...props} />}
-            {page === "review" && <Review {...props} />}
+            {page === "review" && <Review {...props} navigate={navigate} />}
             {page === "report" && <Report {...props} />}
             {page === "library" && (
               <>
@@ -355,6 +484,13 @@ export function Workspace() {
                   </button>
                 </div>
                 <div className="library-actions">
+                  <button
+                    className="button secondary"
+                    onClick={() => navigate("examples")}
+                  >
+                    <BookOpen size={16} />
+                    Browse bridge examples
+                  </button>
                   <label className="button secondary file-button">
                     <FolderOpen size={16} />
                     Open v2 project
@@ -391,7 +527,7 @@ export function Workspace() {
                       }
                     }}
                   >
-                    Load worked example
+                    Load synthetic example
                   </button>
                 </div>
                 <div className="project-list">
@@ -462,6 +598,13 @@ export function Workspace() {
               </>
             )}
           </div>
+          <StepActions
+            project={p}
+            page={page}
+            navigate={navigate}
+            run={run}
+            busy={busy}
+          />
           <footer className="workspace-footer">
             <span>BLC v2 · Engineering screening</span>
             <span>

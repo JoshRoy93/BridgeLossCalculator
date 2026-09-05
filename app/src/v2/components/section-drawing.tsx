@@ -53,7 +53,14 @@ export function SectionDrawing({
           patternUnits="userSpaceOnUse"
           patternTransform="rotate(35)"
         >
-          <line x1="0" y1="0" x2="0" y2="7" stroke="#c6d2cb" strokeWidth="1" />
+          <line
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="7"
+            stroke="var(--drawing-hatch)"
+            strokeWidth="1"
+          />
         </pattern>
         <clipPath id={`${id}air`}>
           <polygon
@@ -73,7 +80,7 @@ export function SectionDrawing({
               x2="865"
               y1={y(z)}
               y2={y(z)}
-              stroke="#dde5df"
+              stroke="var(--drawing-grid)"
               strokeDasharray="3 5"
             />
             <text x="42" y={y(z) + 4} textAnchor="end" className="axis-label">
@@ -91,7 +98,7 @@ export function SectionDrawing({
               x2={x(s)}
               y1="35"
               y2={height - 42}
-              stroke="#e6ece6"
+              stroke="var(--drawing-grid)"
             />
             <text
               x={x(s)}
@@ -117,14 +124,15 @@ export function SectionDrawing({
             y={y(water)}
             width="810"
             height={Math.max(0, height - y(water) - 42)}
-            fill="#3b9e9630"
+            fill="var(--drawing-water)"
+            fillOpacity="0.18"
           />
           <line
             x1="55"
             x2="865"
             y1={y(water)}
             y2={y(water)}
-            stroke="#137e77"
+            stroke="var(--drawing-water)"
             strokeWidth="2"
           />
         </g>
@@ -136,14 +144,19 @@ export function SectionDrawing({
           x2="865"
           y1={y(natural)}
           y2={y(natural)}
-          stroke="#76878d"
+          stroke="var(--muted)"
           strokeDasharray="7 5"
           strokeWidth="1.5"
         />
       )}
-      <polygon points={land} fill="#edf0e8" />
+      <polygon points={land} fill="var(--drawing-ground)" />
       <polygon points={land} fill={`url(#${id}hatch)`} />
-      <polyline points={ground} fill="none" stroke="#718277" strokeWidth="2" />
+      <polyline
+        points={ground}
+        fill="none"
+        stroke="var(--drawing-outline)"
+        strokeWidth="2"
+      />
       {(section === 1 || section === 2) && (
         <>
           <rect
@@ -151,21 +164,21 @@ export function SectionDrawing({
             y={deck}
             width={Math.max(1, right - left + 36)}
             height={Math.max(1, soffit - deck)}
-            fill="#364c4b"
+            fill="var(--drawing-structure)"
           />
           <rect
             x={left - 11}
             y={soffit}
             width="11"
             height={Math.max(1, height - 42 - soffit)}
-            fill="#778c86"
+            fill="var(--drawing-pier)"
           />
           <rect
             x={right}
             y={soffit}
             width="11"
             height={Math.max(1, height - 42 - soffit)}
-            fill="#778c86"
+            fill="var(--drawing-pier)"
           />
           {b.piers.map((p, i) => (
             <rect
@@ -177,7 +190,7 @@ export function SectionDrawing({
                 x(p.station + p.width / 2) - x(p.station - p.width / 2),
               )}
               height={Math.max(1, height - 42 - soffit)}
-              fill="#637a73"
+              fill="var(--drawing-pier)"
             />
           ))}
           <line
@@ -185,11 +198,11 @@ export function SectionDrawing({
             x2={right}
             y1={deck - 20}
             y2={deck - 20}
-            stroke="#7f928c"
+            stroke="var(--drawing-outline)"
           />
           <path
             d={`M${left},${deck - 24}v8 M${right},${deck - 24}v8`}
-            stroke="#7f928c"
+            stroke="var(--drawing-outline)"
           />
           <text
             x={(left + right) / 2}

@@ -10,6 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { reviewIssues, verdict } from "../assessment";
+import { resultAdvice, reviewIssuePage } from "../guidance";
 import {
   currentReview,
   currentRun,
@@ -29,6 +30,7 @@ import {
 } from "../report";
 import { Empty, Field, NumberField } from "./fields";
 import { SectionDrawing } from "./section-drawing";
+import { AiAssessment } from "./ai-assessment";
 
 type Props = {
   project: Project;
@@ -249,50 +251,41 @@ export function Overview({
           </div>
         </section>
         <aside className="workflow-panel">
-          <span className="eyebrow">Assessment workflow</span>
-          <h3>Build a reviewable record.</h3>
-          {[
-            {
-              page: "project",
-              title: "Project and source data",
-              detail: p.datum ? p.datum : "Set the project datum",
-              done: Boolean(p.author && p.datum),
-            },
-            {
-              page: "geometry",
-              title: "Survey and bridge",
-              detail: "4 sections · 1 crossing",
-              done: p.inputs.sections.every((s) => s.source.trim()),
-            },
-            {
-              page: "results",
-              title: "Calculate and compare",
-              detail: run
-                ? `${run.results.length} events calculated`
-                : "Run the current inputs",
-              done: Boolean(run),
-            },
-            {
-              page: "review",
-              title: "Review and report",
-              detail: currentReview(p)
-                ? "Review recorded"
-                : "Record evidence and conclusion",
-              done: currentReview(p),
-            },
-          ].map((step, i) => (
-            <button key={step.page} onClick={() => navigate(step.page)}>
-              <span className={step.done ? "step-number done" : "step-number"}>
-                {step.done ? <Check size={14} /> : `0${i + 1}`}
-              </span>
-              <span>
-                <strong>{step.title}</strong>
-                <small>{step.detail}</small>
-              </span>
-              <ArrowUpRight size={14} />
-            </button>
-          ))}
-          <p>Local workspace. Save a project backup for handover.</p>
+          <span className="eyebrow">Reading the results</span>
+          <h3>What should I look for?</h3>
+          <p>
+            Afflux is the extra upstream water level caused by the bridge
+            compared with the bridge-free reach.
+          </p>
+          <p>
+            Freeboard is the clearance between the water and the underside of
+            the bridge deck.
+          </p>
+          <p>
+            Compare both with your project criteria, then inspect any flagged
+            events before recording a conclusion.
+          </p>
+          <button onClick={() => navigate("review")}>
+            <span>
+              <strong>Set acceptance criteria</strong>
+              <small>Use the limits and source for your project</small>
+            </span>
+            <ArrowUpRight size={14} />
+          </button>
+          <button onClick={() => navigate("simulation")}>
+            <span>
+              <strong>Explore the crossing in 3D</strong>
+              <small>Optional geometry and what-if view</small>
+            </span>
+            <ArrowUpRight size={14} />
+          </button>
+          <button onClick={() => navigate("scenarios")}>
+            <span>
+              <strong>Compare alternatives</strong>
+              <small>Optional comparison of calculated cases</small>
+            </span>
+            <ArrowUpRight size={14} />
+          </button>
         </aside>
       </div>
       <section className="results-section">
@@ -375,8 +368,13 @@ function Trace({
     </>
   );
 }
-export function Results({ project: p, update }: Props) {
+export function Results({
+  project: p,
+  update,
+  navigate,
+}: Props & { navigate?: (page: string) => void }) {
   const run = currentRun(p);
+  const advice = resultAdvice(p);
   const [id, setId] = useState("");
   const r = run?.results.find((r) => r.flowId === id) ?? run?.results[0];
   return (
@@ -389,6 +387,23 @@ export function Results({ project: p, update }: Props) {
         </p>
       </div>
       <ResultsTable project={p} select={setId} />
+      {run && (
+        <div className="result-advice">
+          <strong>{advice.title}</strong>
+          <p>{advice.text}</p>
+          {navigate && advice.page !== "results" && (
+            <button
+              className="button secondary"
+              onClick={() => navigate(advice.page)}
+            >
+              {advice.page === "report"
+                ? "Prepare report"
+                : "Open engineering review"}
+              <ArrowUpRight size={15} />
+            </button>
+          )}
+        </div>
+      )}
       {run && r && (
         <>
           <div className="detail-header">
@@ -564,6 +579,15 @@ export function Scenarios({ project: p, update, notify }: Props) {
           Run the current inputs before saving an alternative.
         </div>
       )}
+      {run && !name.trim() && (
+        <p className="notice">Enter an alternative name to save this case.</p>
+      )}
+      {p.scenarios.length >= 12 && (
+        <p className="notice">
+          All 12 alternative slots are used. Export a project backup, then
+          remove an alternative to save another.
+        </p>
+      )}
       {!p.scenarios.length && (
         <Empty title="A baseline makes changes useful">
           Save the existing crossing first. Then test a wider opening, different
@@ -677,7 +701,12 @@ export function Scenarios({ project: p, update, notify }: Props) {
   );
 }
 
-export function Review({ project: p, update, notify }: Props) {
+export function Review({
+  project: p,
+  update,
+  notify,
+  navigate,
+}: Props & { navigate?: (page: string) => void }) {
   const issues = reviewIssues(p);
   return (
     <>
@@ -761,7 +790,19 @@ export function Review({ project: p, update, notify }: Props) {
           {issues.length > 0 ? (
             <ul>
               {issues.map((issue) => (
-                <li key={issue}>{issue}</li>
+                <li key={issue}>
+                  {navigate && reviewIssuePage(issue) !== "review" ? (
+                    <button
+                      className="issue-link"
+                      onClick={() => navigate(reviewIssuePage(issue))}
+                    >
+                      {issue}
+                      <ArrowUpRight size={14} />
+                    </button>
+                  ) : (
+                    issue
+                  )}
+                </li>
               ))}
             </ul>
           ) : (
@@ -798,7 +839,7 @@ export function Review({ project: p, update, notify }: Props) {
   );
 }
 
-export function Report({ project: p, notify }: Props) {
+export function Report({ project: p, update, notify }: Props) {
   const run = currentRun(p);
   const exportReport = (print: boolean) => {
     try {
@@ -855,6 +896,20 @@ export function Report({ project: p, notify }: Props) {
         <aside className="context-panel">
           <span className="eyebrow">Export package</span>
           <h3>A record you can reopen.</h3>
+          {!run && (
+            <div className="notice">
+              {p.run
+                ? "Inputs have changed. Run the assessment again to enable PDF, HTML and CSV exports."
+                : "Run the assessment to enable PDF, HTML and CSV exports."}{" "}
+              You can download project JSON at any time.
+            </div>
+          )}
+          {run && !currentReview(p) && (
+            <p>
+              Report export is available now. It will be marked as a draft until
+              your engineering review is recorded.
+            </p>
+          )}
           <p>
             The full report includes sources, criteria, every survey point,
             calculation steps, comparisons, alternatives and review notes.
@@ -921,6 +976,7 @@ export function Report({ project: p, notify }: Props) {
           )}
         </aside>
       </div>
+      <AiAssessment project={p} update={update} />
     </>
   );
 }

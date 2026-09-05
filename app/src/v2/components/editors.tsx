@@ -1,10 +1,11 @@
 "use client";
 import { useState } from "react";
-import { ArrowDownToLine, Plus, Trash2 } from "lucide-react";
-import { parseReferenceCsv, parseSurvey } from "../io";
+import { Plus, Trash2 } from "lucide-react";
+import { pasteFlowCells } from "../flow-grid";
+import { parseReferenceCsv } from "../io";
 import { uid, type Project } from "../model";
-import { downloadFile } from "../report";
 import { Field, NumberField } from "./fields";
+import { SurveyGrid } from "./survey-grid";
 import { SectionDrawing } from "./section-drawing";
 
 type Props = {
@@ -79,109 +80,6 @@ export function ProjectEditor({ project: p, update }: Props) {
   );
 }
 
-function SurveyText({
-  project: p,
-  section,
-  update,
-  notify,
-}: Props & { section: number }) {
-  const s = p.inputs.sections[section];
-  const [text, setText] = useState(
-    `station,elevation\n${s.points.map((p) => `${p.station},${p.elevation}`).join("\n")}`,
-  );
-  const [dirty, setDirty] = useState(false);
-  function apply() {
-    try {
-      const points = parseSurvey(text);
-      update({
-        ...p,
-        inputs: {
-          ...p.inputs,
-          sections: p.inputs.sections.map((s, i) =>
-            i === section ? { ...s, points } : s,
-          ),
-        },
-      });
-      setDirty(false);
-      notify(`${points.length} survey points applied.`);
-    } catch (e) {
-      notify(e instanceof Error ? e.message : "Import failed.");
-    }
-  }
-  return (
-    <>
-      <div className="editor-toolbar">
-        <h3>Survey coordinates</h3>
-        <label className="button secondary file-button">
-          Read CSV
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              if (file.size > 200000) {
-                notify("Survey CSV must be smaller than 200 KB.");
-                return;
-              }
-              try {
-                const text = await file.text();
-                parseSurvey(text);
-                setText(text);
-                setDirty(true);
-                notify(
-                  "CSV loaded for review. Apply the coordinates to update this section.",
-                );
-              } catch (err) {
-                notify(
-                  err instanceof Error ? err.message : "Could not read CSV.",
-                );
-              }
-              e.target.value = "";
-            }}
-          />
-        </label>
-      </div>
-      <label className="field">
-        <span>Station and elevation, metres</span>
-        <textarea
-          className="survey-text"
-          data-unsaved={dirty}
-          value={text}
-          rows={12}
-          spellCheck={false}
-          onChange={(e) => {
-            setText(e.target.value);
-            setDirty(true);
-          }}
-        />
-      </label>
-      <div className="inline-actions">
-        <button className="button primary" onClick={apply} disabled={!dirty}>
-          Apply coordinates
-        </button>
-        <button
-          className="button quiet"
-          onClick={() =>
-            downloadFile(
-              "survey-template.csv",
-              "station,elevation\n0,106\n8,104\n14,100\n30,100\n36,104\n44,106",
-              "text/csv",
-            )
-          }
-        >
-          <ArrowDownToLine size={15} />
-          Template
-        </button>
-        {dirty && <span className="status amber">Unapplied coordinates</span>}
-      </div>
-      <p className="muted">
-        Only applied coordinates enter the calculation. Rows are checked in the
-        order supplied.
-      </p>
-    </>
-  );
-}
 export function GeometryEditor(props: Props) {
   const { project: p, update } = props;
   const [section, setSection] = useState(0);
@@ -249,11 +147,12 @@ export function GeometryEditor(props: Props) {
               label="Survey source / date"
               value={s.source}
               onChange={(v) => patch({ source: v })}
+              multiline
             />
           </div>
         </section>
         <section className="survey-editor">
-          <SurveyText key={`${p.id}-${section}`} {...props} section={section} />
+          <SurveyGrid key={`${p.id}-${section}`} {...props} section={section} />
         </section>
       </div>
     </>
@@ -550,6 +449,7 @@ function RainfallHelper({ project: p, update, notify }: Props) {
 }
 export function FlowEditor(props: Props) {
   const { project: p, update, notify } = props;
+  const [pasteVersion, setPasteVersion] = useState(0);
   const patch = (
     id: string,
     change: Partial<(typeof p.inputs.flows)[number]>,
@@ -606,55 +506,126 @@ export function FlowEditor(props: Props) {
           <p>Add a design event or calculate a rainfall estimate below.</p>
         </div>
       )}
-      {p.inputs.flows.map((f, i) => (
-        <section className="flow-editor" key={f.id}>
-          <div className="editor-toolbar">
-            <span className="eyebrow">
-              Event {String(i + 1).padStart(2, "0")}
-            </span>
-            <button
-              className="button quiet"
-              onClick={() =>
-                update({
-                  ...p,
-                  inputs: {
-                    ...p.inputs,
-                    flows: p.inputs.flows.filter((flow) => flow.id !== f.id),
-                  },
-                })
-              }
+      {p.inputs.flows.length > 0 && (
+        <>
+          <p className="grid-help">
+            Paste CSV or spreadsheet cells into the table. Column order: event,
+            discharge, downstream WSEL, source. Extra rows become new events.
+          </p>
+          <div className="table-scroll flow-table-scroll">
+            <table
+              className="flow-table"
+              aria-label="Flow events and boundaries"
+              onPaste={(e) => {
+                const text = e.clipboardData.getData("text");
+                const target = (e.target as HTMLElement).closest<HTMLElement>(
+                  "[data-flow-cell]",
+                );
+                const field = target?.dataset.flowCell?.split("-").map(Number);
+                if (!field || !/[\t\r\n,]/.test(text)) return;
+                // A comma in a source note is ordinary text, not a table paste.
+                if (field[1] === 3 && !/[\t\r\n]/.test(text)) return;
+                e.preventDefault();
+                try {
+                  const flows = pasteFlowCells(
+                    p.inputs.flows,
+                    text,
+                    field[0],
+                    field[1],
+                  );
+                  update({ ...p, inputs: { ...p.inputs, flows } });
+                  setPasteVersion((version) => version + 1);
+                  notify(
+                    "Pasted flow events saved. Check the sources and boundaries before running.",
+                  );
+                } catch (err) {
+                  notify(
+                    err instanceof Error
+                      ? err.message
+                      : "Could not paste events.",
+                  );
+                }
+              }}
             >
-              <Trash2 size={14} />
-              Remove {f.name}
-            </button>
+              <thead>
+                <tr>
+                  <th scope="col">Event</th>
+                  <th scope="col">
+                    Discharge <small>m³/s</small>
+                  </th>
+                  <th scope="col">
+                    Downstream WSEL <small>m</small>
+                  </th>
+                  <th scope="col">Flow and boundary source</th>
+                  <th scope="col">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {p.inputs.flows.map((f, i) => (
+                  <tr key={f.id}>
+                    <td data-flow-cell={`${i}-0`}>
+                      <Field
+                        label={`Event ${i + 1} name`}
+                        value={f.name}
+                        onChange={(v) => patch(f.id, { name: v })}
+                      />
+                    </td>
+                    <td data-flow-cell={`${i}-1`}>
+                      <NumberField
+                        label={`${f.name} discharge · m³/s`}
+                        value={f.discharge}
+                        resetKey={pasteVersion}
+                        min={0.001}
+                        max={1e6}
+                        onChange={(v) => patch(f.id, { discharge: v })}
+                      />
+                    </td>
+                    <td data-flow-cell={`${i}-2`}>
+                      <NumberField
+                        label={`${f.name} downstream WSEL · m`}
+                        value={f.tailwater}
+                        resetKey={pasteVersion}
+                        onChange={(v) => patch(f.id, { tailwater: v })}
+                      />
+                    </td>
+                    <td data-flow-cell={`${i}-3`}>
+                      <Field
+                        label={`${f.name} flow and boundary source`}
+                        value={f.source}
+                        multiline
+                        onChange={(v) => patch(f.id, { source: v })}
+                        placeholder="Model, event definition and tailwater source"
+                      />
+                    </td>
+                    <td>
+                      <button
+                        className="icon-button"
+                        aria-label={`Remove ${f.name}`}
+                        title={`Remove ${f.name}`}
+                        onClick={() =>
+                          update({
+                            ...p,
+                            inputs: {
+                              ...p.inputs,
+                              flows: p.inputs.flows.filter(
+                                (flow) => flow.id !== f.id,
+                              ),
+                            },
+                          })
+                        }
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="form-grid three">
-            <Field
-              label={`Event ${i + 1} name`}
-              value={f.name}
-              onChange={(v) => patch(f.id, { name: v })}
-            />
-            <NumberField
-              label={`${f.name} discharge · m³/s`}
-              value={f.discharge}
-              min={0.001}
-              max={1e6}
-              onChange={(v) => patch(f.id, { discharge: v })}
-            />
-            <NumberField
-              label={`${f.name} downstream WSEL · m`}
-              value={f.tailwater}
-              onChange={(v) => patch(f.id, { tailwater: v })}
-            />
-          </div>
-          <Field
-            label={`${f.name} flow and boundary source`}
-            value={f.source}
-            onChange={(v) => patch(f.id, { source: v })}
-            hint="Include model/version, event definition and tailwater derivation."
-          />
-        </section>
-      ))}
+        </>
+      )}
       <RainfallHelper {...props} />
       <details className="helper">
         <summary>Import external water levels for comparison</summary>

@@ -17,7 +17,17 @@ npm start
 
 Open http://127.0.0.1:3000. To use a different port, set `PORT` before starting. `npm run dev` starts the development server.
 
-The production build is in `app/out`. It can be hosted on a static HTTPS host. No database, account, API key or external service is required. The included production server binds to localhost. Missing paths return 404.
+The production build is in `app/out`. It can be hosted on a static HTTPS host for calculations, visualisation and exports. The included server binds to localhost and also provides the optional OpenAI account integration. Missing paths return 404. AI sign-in and generation require the local server; a static hosted copy cannot store credentials on your computer.
+
+## OpenAI account and restored tools
+
+Open **Report & export**, then **Sign in with OpenAI**. Complete sign-in on OpenAI's page. The official Codex App Server stores and refreshes this app's credentials in `.blc-local/codex/auth.json`, outside the served files and ignored by Git. This is separate from your normal Codex login. Use **Sign out** to remove the app's cached login. Do not share this credential file with project backups.
+
+Once signed in, run the assessment and select **Generate assessment**. The app sends the current report to OpenAI using your account. Choose a technical assessment or a plain-language summary. Leave the model blank for the account default or enter an available model. Generated text is editable and included in HTML/PDF exports. A changed assessment excludes the old draft until it is regenerated.
+
+**3D & what-if** restores an interactive SI bridge view, flow markers, camera controls, PNG capture, report images and a longitudinal water/energy profile. Test opening width, soffit, roughness, discharge and blockage before applying changes. The parameter sweep tests nine opening-width or blockage values against project criteria. **Hydrology helper** adds a source-recorded Rational Method estimate with the corrected km² conversion.
+
+The [v1 feature audit](docs/v2/v1-feature-audit.md) records restored functions, existing replacements and older tools that remain outside v2's supported calculation model.
 
 ## The assessment workflow
 
@@ -30,7 +40,7 @@ The production build is in `app/out`. It can be hosted on a static HTTPS host. N
 - Enter external model results, set project criteria and record engineering review evidence.
 - Download complete project JSON, results CSV and a self-contained HTML report. Print the report to PDF using the browser.
 
-Projects autosave in the current browser. Download JSON for backup and handover. The worked example uses synthetic data and says so in its source records. See the [operating guide](docs/v2/workflow.md).
+Projects autosave in the current browser. Download JSON for backup and handover. **Example bridges** loads Breakfast Creek Road Bridge or Windsor Bridge with animated model previews, published dimensions and labelled assumptions. Sources travel with the project and report. The separate Cedar Creek example remains synthetic. See the [example decisions and research](docs/v2/bridge-examples.md) and [operating guide](docs/v2/workflow.md).
 
 ## Model boundary
 

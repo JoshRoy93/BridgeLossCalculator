@@ -48,11 +48,15 @@ The alternative was to keep guessed ARR API response formats and permissive nati
 
 ## D08. Export deterministic reports without AI
 
+Superseded in part by D15. Deterministic calculations remain; optional AI drafts and 3D report images have been restored at the user's request.
+
 Reports include project data, calculation results, model limits, review notes and source records. Users can print to PDF or download a self-contained HTML report, results CSV and project JSON.
 
 AI-generated narratives and rendered 3D scenes add no necessary evidence to the calculation. The alternative would also introduce API credentials and external requests. V2 uses a geometry-based SVG drawing and editable engineering notes.
 
 ## D09. Ship static files and isolate the old API
+
+Superseded in part by D15. Static hosting remains available, while the local server now also provides the separate OpenAI account service.
 
 V2 builds to `app/out`. The local server only reads those static files. The old AI route handlers moved to `src/legacy/api` so they cannot read credentials or receive requests from a deployed v2 site. Their reference tests remain.
 
@@ -89,3 +93,9 @@ Legacy JSON has its own import action. Its engine values convert from feet and c
 Automatic migration without a visible warning would imply that a single-section model contains four surveyed sections. Native HEC-RAS files remain unsupported because the old parser did not preserve enough of the hydraulic model to make that promise.
 
 Skewed bridges and non-horizontal soffits are rejected during migration. Silently flattening those shapes would change the problem without the engineer choosing that simplification.
+
+## D15. Restore visualisation and optional OpenAI account assessment
+
+The user requested restoration of lost v1 functions, especially the 3D bridge and AI report assessment. V2 now includes an SI 3D view, flow animation, water/energy profiles, what-if previews, parameter sweeps and report captures. AI drafts are optional, editable, tied to the current assessment and excluded from exports when stale.
+
+The official Codex App Server handles account login and local credential refresh. The local app stores a separate ignored auth.json; it never reuses the developer's Codex credentials implicitly. Static deployments retain calculations and exports, but account login requires the loopback service. See [the v1 feature audit](v1-feature-audit.md) for implementation and remaining model-dependent gaps.

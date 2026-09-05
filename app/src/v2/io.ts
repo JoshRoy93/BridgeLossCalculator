@@ -4,6 +4,7 @@ import {
   ENGINE_VERSION,
   uid,
   type Inputs,
+  type DemoBasis,
   type Project,
   type Run,
   type Workspace,
@@ -104,6 +105,61 @@ function parseRun(raw: unknown): Run | null {
     date: string(r.date, "Run date"),
   };
 }
+function parseDemoBasis(value: unknown): DemoBasis {
+  const d = object(value, "Demo source basis");
+  const sources = array(d.sources, "Demo sources", 20).map((item) => {
+    const s = object(item, "Demo source"),
+      url = string(s.url, "Source URL", 2000);
+    if (
+      !/^https?:\/\//i.test(url) ||
+      !["https:", "http:"].includes(new URL(url).protocol)
+    )
+      throw new Error("Demo source links must use HTTP or HTTPS.");
+    return {
+      id: string(s.id, "Source ID", 100),
+      title: string(s.title, "Source title", 500),
+      url,
+      date: string(s.date, "Source date", 100),
+      pages: string(s.pages, "Source pages", 200),
+    };
+  });
+  const ids = new Set(sources.map((s) => s.id));
+  if (ids.size !== sources.length)
+    throw new Error("Demo source IDs must be unique.");
+  return {
+    id: string(d.id, "Demo ID", 100),
+    revision: string(d.revision, "Demo revision", 100),
+    title: string(d.title, "Demo title", 200),
+    era: string(d.era, "Demo era", 300),
+    summary: string(d.summary, "Demo summary", 4000),
+    inputKey: string(d.inputKey, "Demo input basis", 2_000_000),
+    sources,
+    limitations: array(d.limitations, "Demo limitations", 20).map((l) =>
+      string(l, "Limitation", 2000),
+    ),
+    values: array(d.values, "Demo input notes", 60).map((item) => {
+      const v = object(item, "Demo input note");
+      if (
+        !["published", "derived", "estimated", "assumed"].includes(
+          String(v.kind),
+        )
+      )
+        throw new Error("Invalid demo evidence category.");
+      const sourceIds = array(v.sourceIds, "Input sources", 20).map((id) =>
+        string(id, "Source ID", 100),
+      );
+      if (sourceIds.some((id) => !ids.has(id)))
+        throw new Error("Demo input cites a missing source.");
+      return {
+        field: string(v.field, "Input field", 300),
+        value: string(v.value, "Source value", 2000),
+        kind: v.kind as DemoBasis["values"][number]["kind"],
+        note: string(v.note, "Input note", 4000),
+        sourceIds,
+      };
+    }),
+  };
+}
 function parseProject(value: unknown): Project {
   const p = object(value, "Project"),
     c = object(p.criteria, "Criteria"),
@@ -133,6 +189,38 @@ function parseProject(value: unknown): Project {
       notes: string(e.notes, "Review notes"),
     },
     run: parseRun(p.run),
+    ...(p.demoBasis ? { demoBasis: parseDemoBasis(p.demoBasis) } : {}),
+    ...(p.sceneImage
+      ? {
+          sceneImage: (() => {
+            const image = object(p.sceneImage, "3D image");
+            const dataUrl = string(image.dataUrl, "3D image", 1_500_000);
+            if (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(dataUrl))
+              throw new Error("3D image must be an embedded PNG.");
+            return {
+              dataUrl,
+              key: string(image.key, "3D image basis", 2_000_000),
+              caption: string(image.caption, "3D image caption", 500),
+            };
+          })(),
+        }
+      : {}),
+    ...(p.aiAssessment
+      ? {
+          aiAssessment: (() => {
+            const a = object(p.aiAssessment, "AI assessment");
+            if (typeof a.edited !== "boolean")
+              throw new Error("AI edited flag must be boolean.");
+            return {
+              text: string(a.text, "AI assessment", 20000),
+              key: string(a.key, "AI basis", 2_000_000),
+              date: string(a.date, "AI date"),
+              model: string(a.model, "AI model", 200),
+              edited: a.edited,
+            };
+          })(),
+        }
+      : {}),
     scenarios: array(p.scenarios, "Scenarios", 12).map((item) => {
       const s = object(item, "Scenario"),
         run = parseRun(s.run);

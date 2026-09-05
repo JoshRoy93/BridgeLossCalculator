@@ -6,3 +6,5 @@ BridgeLossCalculator.xlsm
 output/
 app/.playwright-cli/
 app/audit-v2.json
+.blc-local/
+**/auth.json

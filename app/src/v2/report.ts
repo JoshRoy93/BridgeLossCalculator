@@ -1,6 +1,13 @@
 import { verdict } from "./assessment";
 import { csvCell } from "./io";
-import { currentReview, currentRun, type Project } from "./model";
+import {
+  currentAssessment,
+  currentReview,
+  currentRun,
+  inputKey,
+  sceneImageKey,
+  type Project,
+} from "./model";
 export const MODEL_LIMITS =
   "Steady subcritical free-surface screening using four surveyed sections, uniform roughness per section and velocity-head coefficient 1. Pressure flow, overtopping, critical control, scour, sediment transport, skew and lateral flow are outside this model. Blockage is a uniform open-area sensitivity assumption. Results do not certify structural safety or regulatory compliance.";
 export const fmt = (value: number | null | undefined, digits = 3) =>
@@ -64,6 +71,8 @@ export function reportHtml(p: Project): string {
       )
       .join("");
   const b = p.inputs.bridge;
+  const ai = currentAssessment(p);
+  const scene = p.sceneImage?.key === sceneImageKey(p) ? p.sceneImage : null;
   return `<!doctype html><html lang="en-AU"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${h(p.name)} | BLC assessment</title><style>body{font:14px/1.55 system-ui,sans-serif;color:#203b39;max-width:1050px;margin:40px auto;padding:0 28px}header{border-bottom:3px solid #167a72;padding-bottom:24px}h1{font-size:34px;line-height:1.2}h2{margin-top:36px;font-size:22px;border-bottom:1px solid #c7d4d0;padding-bottom:8px}h3{font-size:14px;margin-bottom:4px}p{white-space:pre-wrap;margin-top:4px}small{color:#52645f}table{border-collapse:collapse;width:100%;font-size:11px;margin:14px 0 24px}th,td{text-align:left;border-bottom:1px solid #d9e2dc;padding:8px;vertical-align:top;overflow-wrap:anywhere}th{background:#edf2ed}.notice{padding:16px;background:#f4f1e6;border-left:3px solid #a67b25}@media print{th,td{padding:6px}body{margin:0;max-width:none;font-size:10pt;padding:0}h2,h3{break-after:avoid}tr,.calculation-case,.survey-group{break-inside:avoid}.calculation-case p{break-after:avoid}thead{display:table-header-group}a{color:inherit}@page{size:A4 landscape;margin:16mm}}</style></head><body>
   <header><small>BRIDGE LOSS CALCULATOR / V2</small><h1>${h(p.name)}</h1><p>${h(p.reference)} · ${h(p.location)}</p><small>Run ${h(run.id)} · Engine ${h(run.engine)} · ${h(run.date)}</small></header>
   <h2>Assessment record</h2>${paragraphs([
@@ -78,6 +87,26 @@ export function reportHtml(p: Project): string {
     ],
   ])}
   <div class="notice">${h(MODEL_LIMITS)}</div>
+  ${
+    p.demoBasis
+      ? `<h2>Example source record: ${h(p.demoBasis.title)}</h2><p>${h(p.demoBasis.era)}. ${h(p.demoBasis.summary)}</p><p>${p.demoBasis.inputKey === inputKey(p.inputs) ? "Original example inputs." : "Inputs edited since loading. This record describes the original example and is retained as source history."} Revision ${h(p.demoBasis.revision)}.</p>${table(
+          [
+            "Input",
+            "Original example value",
+            "Basis",
+            "How it is used",
+            "Source",
+          ],
+          p.demoBasis.values.map((v) => [
+            v.field,
+            v.value,
+            v.kind,
+            v.note,
+            v.sourceIds.join(", "),
+          ]),
+        )}<h3>Sources</h3>${p.demoBasis.sources.map((s) => `<p>[${h(s.id)}] ${/^https?:\/\//i.test(s.url) ? `<a href="${h(s.url)}">${h(s.title)}</a>` : h(s.title)}. ${h(s.date)}. ${h(s.pages)}.</p>`).join("")}<h3>Model simplifications</h3><ul>${p.demoBasis.limitations.map((l) => `<li>${h(l)}</li>`).join("")}</ul>`
+      : ""
+  }
   <h2>Results</h2><p>All values use SI units. Afflux is bridge approach water level minus bridge-free approach water level at the same discharge and downstream boundary.</p>
   ${table(
     [
@@ -105,6 +134,7 @@ export function reportHtml(p: Project): string {
     .filter((r) => r.reason)
     .map((r) => `<p class="notice">${h(r.name)}: ${h(r.reason)}</p>`)
     .join("")}
+  ${scene ? `<h2>3D bridge view</h2><figure><img style="max-width:100%;max-height:400px" src="${h(scene.dataUrl)}" alt="3D bridge and water surface"><figcaption>${h(scene.caption)}. Interpolated visualisation of four survey sections, not a three-dimensional hydraulic simulation.</figcaption></figure>` : ""}
   <h2>Criteria and external comparison</h2>${paragraphs([["Criteria source", p.criteria.source]])}<p>Minimum freeboard ${fmt(p.criteria.freeboard)} m. Maximum afflux ${fmt(p.criteria.afflux)} m. Comparison tolerance ${fmt(p.criteria.comparison)} m.</p>
   ${table(
     [
@@ -201,6 +231,7 @@ export function reportHtml(p: Project): string {
     ["Reviewer", p.evidence.reviewer],
     ["Conclusion and outstanding actions", p.evidence.notes],
   ])}
+  <h2>AI report assessment</h2>${ai ? `<p class="notice">AI-generated draft${ai.edited ? ", edited by the preparer" : ""}. Requires engineering review. Model ${h(ai.model)}. Generated ${h(ai.date)}.</p><p>${h(ai.text)}</p>` : `<p>${p.aiAssessment ? "An earlier AI draft was excluded because the assessment changed." : "No AI assessment included."}</p>`}
   <h2>Saved alternatives</h2>${
     p.scenarios
       .map(

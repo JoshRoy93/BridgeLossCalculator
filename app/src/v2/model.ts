@@ -96,6 +96,31 @@ export interface Scenario {
   note: string;
   run: Run;
 }
+export interface DemoSource {
+  id: string;
+  title: string;
+  url: string;
+  date: string;
+  pages: string;
+}
+export interface DemoValue {
+  field: string;
+  value: string;
+  kind: "published" | "derived" | "estimated" | "assumed";
+  note: string;
+  sourceIds: string[];
+}
+export interface DemoBasis {
+  id: string;
+  revision: string;
+  title: string;
+  era: string;
+  summary: string;
+  inputKey: string;
+  sources: DemoSource[];
+  values: DemoValue[];
+  limitations: string[];
+}
 export interface Project {
   id: string;
   name: string;
@@ -111,6 +136,15 @@ export interface Project {
   run: Run | null;
   scenarios: Scenario[];
   review: { date: string; key: string } | null;
+  aiAssessment?: {
+    text: string;
+    key: string;
+    date: string;
+    model: string;
+    edited: boolean;
+  };
+  sceneImage?: { dataUrl: string; key: string; caption: string };
+  demoBasis?: DemoBasis;
 }
 export interface Workspace {
   format: "blc-workspace";
@@ -143,13 +177,40 @@ export const reviewKey = (p: Project) =>
       p.datum,
       p.author,
       p.purpose,
+      p.demoBasis,
       p.run?.id,
+      p.aiAssessment,
+      p.sceneImage,
     ]),
   );
 export const currentRun = (p: Project) =>
   p.run?.engine === ENGINE_VERSION && p.run.inputKey === inputKey(p.inputs)
     ? p.run
     : null;
+// Excludes generated text and review completion so editing either cannot change its basis.
+export const assessmentKey = (p: Project) =>
+  JSON.stringify(
+    canonical([
+      ENGINE_VERSION,
+      p.inputs,
+      p.criteria,
+      p.evidence,
+      p.name,
+      p.reference,
+      p.location,
+      p.datum,
+      p.author,
+      p.purpose,
+      p.demoBasis,
+      p.run?.id,
+    ]),
+  );
+export const currentAssessment = (p: Project) =>
+  currentRun(p) && p.aiAssessment?.key === assessmentKey(p)
+    ? p.aiAssessment
+    : null;
+export const sceneImageKey = (p: Project) =>
+  `${p.run?.id ?? ""}:${inputKey(p.inputs)}`;
 export const currentReview = (p: Project) =>
   Boolean(currentRun(p) && p.review?.key === reviewKey(p));
 export function createProject(example = false): Project {

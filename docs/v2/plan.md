@@ -32,11 +32,13 @@ Reviewed starting commit `69fae5fe0864b2232409a9c4b2b431c836e4ce0c` on `master`.
 
 ## Design direction
 
-Visual thesis: a quiet survey desk with warm white working surfaces, dark ink, teal water and precise technical drawings.
+Visual thesis: retain v1's dark blue workspace, cyan accents and subtle engineering grid, with readable controls and precise technical drawings. The initial warm white design was replaced after user review.
 
 Content plan: a persistent project rail; an assessment overview with a bridge cross-section as its main visual; focused input editors; results and review alongside their evidence; a report workspace.
 
 Interaction thesis: short workspace transitions, immediate geometry previews and clear saved/run state changes. Respect reduced-motion preferences.
+
+Data entry uses editable tables for survey coordinates and flow events. CSV and spreadsheet paste populate cells; raw CSV is not the manual editor. See [UI refresh decisions and checks](ui-refresh.md).
 
 ## Completion criteria
 
