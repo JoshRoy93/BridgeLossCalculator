@@ -1,0 +1,74 @@
+[
+  {
+    "file": "grass-colour.webp",
+    "asset": "sparse_grass",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sparse_grass/sparse_grass_diff_1k.jpg",
+    "licence": "CC0-1.0",
+    "bytes": 218802,
+    "sha256": "30ffdc4ea8ab69aa620f546dde1e25e92da109c17145420f3a4cc2a22dfbed8d"
+  },
+  {
+    "file": "grass-normal.webp",
+    "asset": "sparse_grass",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sparse_grass/sparse_grass_nor_gl_1k.jpg",
+    "licence": "CC0-1.0",
+    "bytes": 552698,
+    "sha256": "f582e626c99f9e5abe6d22c4f30d7f12a2115f1ff503a2fe66f1c0c8c2becbea"
+  },
+  {
+    "file": "grass-roughness.webp",
+    "asset": "sparse_grass",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sparse_grass/sparse_grass_rough_1k.jpg",
+    "licence": "CC0-1.0",
+    "bytes": 44918,
+    "sha256": "e78a95be04e9f250683c3694c6dad6d8f3965b9bc80380505d414bf901cf000d"
+  },
+  {
+    "file": "soil-colour.webp",
+    "asset": "brown_mud_leaves_01",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud_leaves_01/brown_mud_leaves_01_diff_1k.jpg",
+    "licence": "CC0-1.0",
+    "bytes": 361918,
+    "sha256": "9d0615290032da6b945442ee4854e95a16a9513ccc9eee16ab575bb5bb407d2d"
+  },
+  {
+    "file": "soil-normal.webp",
+    "asset": "brown_mud_leaves_01",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud_leaves_01/brown_mud_leaves_01_nor_gl_1k.jpg",
+    "licence": "CC0-1.0",
+    "bytes": 581162,
+    "sha256": "60be43025acc0bf8927f8a6051331c673f399879e74928ad6e851d2e02b6eb51"
+  },
+  {
+    "file": "soil-roughness.webp",
+    "asset": "brown_mud_leaves_01",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud_leaves_01/brown_mud_leaves_01_rough_1k.jpg",
+    "licence": "CC0-1.0",
+    "bytes": 147734,
+    "sha256": "b507fb2a9b6c98c4540f902a412f8aec5889935d1c247cc0e317fb4ffc932da4"
+  },
+  {
+    "file": "asphalt-colour.webp",
+    "asset": "clean_asphalt",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/clean_asphalt/clean_asphalt_diff_1k.jpg",
+    "licence": "CC0-1.0",
+    "bytes": 153802,
+    "sha256": "8a1fdaed5a130b5eab63fd21e0cbdd5af1bb532f8f813f8ec0d068218ec1d293"
+  },
+  {
+    "file": "asphalt-normal.webp",
+    "asset": "clean_asphalt",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/clean_asphalt/clean_asphalt_nor_gl_1k.jpg",
+    "licence": "CC0-1.0",
+    "bytes": 202030,
+    "sha256": "c8837e7c59991c631e2a19300fbdab9df6da0699b8af57cc68b6682c7e2b2edf"
+  },
+  {
+    "file": "asphalt-roughness.webp",
+    "asset": "clean_asphalt",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/clean_asphalt/clean_asphalt_rough_1k.jpg",
+    "licence": "CC0-1.0",
+    "bytes": 148920,
+    "sha256": "c3090fa8160f314dfeb1c19c14520943da6f4aa1bb352c1335b1004003f44998"
+  }
+]
