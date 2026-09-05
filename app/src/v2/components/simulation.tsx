@@ -268,7 +268,7 @@ export function Simulation({
           sceneImage: {
             dataUrl,
             key: sceneImageKey(p),
-            caption: `${result!.name} at ${fmt(result!.discharge, 1)} m³/s. ${view} view. Surface motion and bridge finishes are illustrative.`,
+            caption: `${result!.name} at ${fmt(result!.discharge, 1)} m³/s. ${view} view. Road approaches, finishes and surface motion are illustrative.`,
           },
           review: null,
         });
@@ -683,8 +683,8 @@ export function Simulation({
       </div>
       <div className="studio-foot">
         <p>
-          Survey terrain and calculated water levels. Surface motion and bridge
-          finishes are illustrative.
+          Survey terrain and calculated water levels. Road approaches, finishes
+          and surface motion are illustrative.
         </p>
         <div>
           <button

@@ -78,14 +78,37 @@ describe("sourced bridge examples", () => {
     const load = vi.fn();
     render(<DemoGallery load={load} />);
     expect(load).not.toHaveBeenCalled();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Review this example" }),
-    );
+    fireEvent.click(screen.getByRole("tab", { name: "Windsor Bridge" }));
     fireEvent.click(screen.getByRole("button", { name: "Use Windsor Bridge" }));
     expect(load).toHaveBeenCalledWith("windsor-design");
     const p = createDemoProject(load.mock.calls[0][0]);
     expect(p.inputs.bridge.right).toBe(157.6);
     expect(p.inputs.bridge.soffit).toBe(7.3);
     expect(p.inputs.flows[0].discharge).toBe(275);
+  });
+  it("switches tabs by keyboard and keeps the active values and load action together", () => {
+    const load = vi.fn();
+    render(<DemoGallery load={load} />);
+    const breakfast = screen.getByRole("tab", {
+      name: "Breakfast Creek Road Bridge",
+    });
+    const windsor = screen.getByRole("tab", { name: "Windsor Bridge" });
+    fireEvent.keyDown(breakfast, { key: "ArrowRight" });
+    expect(windsor.getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(windsor);
+    expect(
+      screen.getByRole("table", { name: "Windsor Bridge flow cases" }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("table", {
+        name: "Breakfast Creek Road Bridge flow cases",
+      }),
+    ).toBeNull();
+    expect(screen.getByRole("tabpanel").textContent).toContain("157.6 m");
+    expect(screen.getByRole("tabpanel").textContent).toContain("7.30 m AHD");
+    fireEvent.keyDown(windsor, { key: "Home" });
+    expect(breakfast.getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tabpanel").textContent).toContain("60.9 m");
+    expect(load).not.toHaveBeenCalled();
   });
 });

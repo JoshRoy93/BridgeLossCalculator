@@ -17,8 +17,6 @@ Restore the video-backed example chooser using Brisbane and Greater Sydney cross
 - Leave external comparison targets and the criteria source unset. Published near-bridge levels are not equivalent to this model's approach section. Loading public data cannot complete an engineering review.
 - Keep Breakfast Creek's channel reconstruction explicit. Public height/depth grids agree numerically when used to recover model terrain, but trial transects cross an unresolved low strip beyond the northern bank. They need a mapped alignment check before use as hydraulic sections.
 
-## Preview assets
-
 ## Gallery layout and interaction
 
 Visual thesis: a compact engineering reference view in the existing dark blue palette, with a single preview and readable values sharing the screen.
@@ -38,3 +36,5 @@ Detailed source checks: [Brisbane](brisbane-bridge-research.md) and [Windsor](sy
 Both demos pass input validation and calculate all six loaded events. Tests cover independent project copies, source-record export/import, unsafe source links, source-history changes and the gallery load action. The full suite passed 401 tests; build, lint and formatting checks passed.
 
 Browser checks covered both video play/pause controls, loading and calculating Windsor, the Breakfast Creek 3D preview, and desktop/mobile gallery layouts. The final gallery check found no page errors or failed requests. At a 390 px viewport, the document remains 390 px wide and the source table scrolls within its container. Screenshots are in `output/playwright/bridge-gallery-desktop.png` and `bridge-gallery-mobile.png`.
+
+The tabbed layout revision passes seven example tests and the build and lint checks. Browser checks confirm arrow-key navigation, a single active preview, correct values after switching and loading, and disabled transitions under reduced motion. At 1366 × 768, the load button ends at 746 px, with the dimensions and all four Breakfast Creek flow cases above it. At 390 px wide, the page has no horizontal overflow and places the values before the source commentary. Updated screenshots are `output/playwright/demo-tabs-desktop.png`, `demo-tabs-windsor.png` and `demo-tabs-mobile.png`.

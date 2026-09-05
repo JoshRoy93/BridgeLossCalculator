@@ -1,5 +1,5 @@
 ﻿"use client";
-import { useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html, OrbitControls, Line } from "@react-three/drei";
 import type { OrbitControls as Controls } from "three-stdlib";
@@ -7,62 +7,10 @@ import * as THREE from "three";
 import { elevationAt, sceneGeometry } from "../scene-geometry";
 import type { FlowResult, Inputs } from "../model";
 import { useSceneTransition } from "./use-scene-transition";
+import { TexturedSurface } from "./scene-material";
+import { approachGeometry } from "../approach-geometry";
 
 type Scene = ReturnType<typeof sceneGeometry>;
-function Surface({
-  vertices,
-  soil = false,
-  wireframe = false,
-}: {
-  vertices: number[];
-  soil?: boolean;
-  wireframe?: boolean;
-}) {
-  const geometry = useMemo(() => {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-    g.computeVertexNormals();
-    return g;
-  }, [vertices]);
-  useEffect(() => () => geometry.dispose(), [geometry]);
-  return (
-    <mesh geometry={geometry} receiveShadow castShadow>
-      <meshStandardMaterial
-        color={soil ? "#695e4e" : "#7c8466"}
-        roughness={0.93}
-        side={THREE.DoubleSide}
-        wireframe={wireframe}
-        customProgramCacheKey={() => (soil ? "cut-soil" : "survey-ground")}
-        onBeforeCompile={(shader) => {
-          shader.vertexShader = shader.vertexShader
-            .replace(
-              "#include <common>",
-              "#include <common>\nvarying vec3 vSite;",
-            )
-            .replace(
-              "#include <begin_vertex>",
-              "#include <begin_vertex>\nvSite = position;",
-            );
-          shader.fragmentShader = shader.fragmentShader
-            .replace(
-              "#include <common>",
-              `#include <common>
-          varying vec3 vSite;
-          float grain(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
-          float noise(vec2 p) { vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(grain(i),grain(i+vec2(1,0)),f.x),mix(grain(i+vec2(0,1)),grain(i+vec2(1,1)),f.x),f.y); }`,
-            )
-            .replace(
-              "#include <color_fragment>",
-              `#include <color_fragment>
-            float n=noise(vSite.xz*1.8)*0.13+noise(vSite.xz*16.)*0.06;
-            diffuseColor.rgb *= 0.85+n;
-            ${soil ? "diffuseColor.rgb *= 0.94 + sin(vSite.y*12.+noise(vSite.xz)*2.)*0.06;" : "diffuseColor.rgb = mix(diffuseColor.rgb*vec3(0.76,0.81,0.67),diffuseColor.rgb,smoothstep(0.1,4.8,vSite.y+noise(vSite.xz*.6)));"}`,
-            );
-        }}
-      />
-    </mesh>
-  );
-}
 function Water({
   scene,
   playing,
@@ -174,6 +122,20 @@ function Block({
   );
 }
 function Bridge({ inputs, scene }: { inputs: Inputs; scene: Scene }) {
+  const approaches = useMemo(
+    () => approachGeometry(inputs, scene.datum, scene.centre),
+    [inputs, scene.datum, scene.centre],
+  );
+  const markings = useMemo(() => {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(approaches.markings, 3),
+    );
+    geometry.computeVertexNormals();
+    return geometry;
+  }, [approaches]);
+  useEffect(() => () => markings.dispose(), [markings]);
   const b = inputs.bridge,
     span = b.right - b.left,
     width = span + 2;
@@ -204,12 +166,18 @@ function Bridge({ inputs, scene }: { inputs: Inputs; scene: Scene }) {
         position={[centre, (b.deck + b.soffit) / 2 - scene.datum, z]}
         size={[width, Math.max(0.02, b.deck - b.soffit), b.deckLength]}
       />
-      <Block
-        position={[centre, deck + 0.025, z]}
-        size={[width, 0.045, roadWidth]}
-        colour="#424c50"
-        roughness={0.96}
-      />
+      <Suspense fallback={null}>
+        <TexturedSurface vertices={approaches.road} kind="asphalt" />
+        <TexturedSurface vertices={approaches.shoulders} kind="gravel" />
+        <TexturedSurface vertices={approaches.fill} kind="ground" />
+      </Suspense>
+      <mesh geometry={markings}>
+        <meshStandardMaterial
+          color="#e7e5cf"
+          side={THREE.DoubleSide}
+          roughness={0.9}
+        />
+      </mesh>
       {Array.from({ length: Math.min(100, Math.ceil(width / 4)) }, (_, i) => (
         <Block
           key={i}
@@ -461,7 +429,9 @@ function SceneView({
   const dimensionY = b.deck - scene.datum + 2.7;
   return (
     <Canvas
-      data-rendered-water-level={result?.status === "ok" ? result.bridge[3]?.wsel : undefined}
+      data-rendered-water-level={
+        result?.status === "ok" ? result.bridge[3]?.wsel : undefined
+      }
       data-rendered-soffit={inputs.bridge.soffit}
       shadows="percentage"
       dpr={[1, 1.75]}
@@ -508,8 +478,16 @@ function SceneView({
         <planeGeometry args={[scale * 12, scale * 12]} />
         <meshStandardMaterial color="#172730" roughness={1} />
       </mesh>
-      <Surface vertices={terrain.terrain} wireframe={wireframe} />
-      <Surface vertices={terrain.sides} soil />
+      <Suspense fallback={null}>
+        <TexturedSurface
+          vertices={terrain.terrain}
+          wireframe={wireframe}
+          result={result}
+          datum={scene.datum}
+          distances={scene.distances}
+        />
+        <TexturedSurface vertices={terrain.sides} kind="soil" vertical />
+      </Suspense>
       {water && scene.water.length > 0 && (
         <Water
           scene={scene}

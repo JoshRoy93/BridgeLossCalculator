@@ -21,7 +21,7 @@ The installed Three.js / React Three Fiber stack is current enough for this work
 
 ## Boundaries
 
-The solver is unchanged. Water elevations interpolate the four calculated sections. Surface animation is illustrative and is not CFD. Blockage remains a uniform area reduction, not inferred debris geometry. Surveys are simplified only for visualisation. No external imagery, HDR downloads or new rendering dependencies are required.
+The solver is unchanged. Water elevations interpolate the four calculated sections. Surface animation is illustrative and is not CFD. Blockage remains a uniform area reduction, not inferred debris geometry. Surveys are simplified only for visualisation. Road approach grading and finishes are illustrative; the approach fill is not an additional obstruction in the hydraulic model. Texture assets are bundled locally, with no runtime asset-provider requests or new rendering dependencies.
 
 ## Completed and verified
 
@@ -34,3 +34,15 @@ The solver is unchanged. Water elevations interpolate the four calculated sectio
 - For the sample 10% AEP event, changing blockage from 0% to 25% changed afflux from 0.012 m to 0.080 m. A 672,418-character PNG was saved with the applied project and report caption.
 
 Local verification images: `output/playwright/studio-desktop-final.png`, `studio-render-final.png` and `studio-mobile.png`. These are ignored working artefacts, not shipped assets.
+
+## Loading, transitions and road connections
+
+The studio now retains the latest completed inputs and results while a new calculation is pending or fails. It labels that view as the previous result. Once a supported result arrives, a 1.2-second eased transition moves the water levels, shoreline and bridge geometry together. A new target starts from the last displayed intermediate frame. Reduced motion skips the interpolation; pausing decorative flow does not stop result transitions. Intermediate frames are visual only and cannot be exported as report images or persisted as calculations. Unsupported results replace the old view after calculation, without inventing an intermediate water level.
+
+Approach roads now meet both ends of the deck at the exact asphalt elevation and extend to the outer survey bounds. Graded shoulders and side fill close the space between the road and terrain. They remain connected while the deck or opening moves. Where a deck already extends beyond the survey, no additional approach is invented beyond that boundary.
+
+The ground now uses grass, exposed soil and river-gravel colour, normal and roughness maps. Grass blends into a darker gravel waterline, and the deck and approaches share asphalt textures. Smoothed rendering normals reduce the hard faceted bank appearance without changing survey elevations. Twelve optimised, locally bundled texture maps total approximately 3.5 MB. Asset provenance and licences are in `app/public/textures/bridge-studio/LICENSE.md` and `sources.json`.
+
+Browser sampling of the textured scene observed no disappearing-water frames during loading, followed by a monotonic rise over approximately 1.2 seconds with decorative flow paused. Interrupted deck movement, opening changes, reduced motion and mobile layout were also checked. Screenshots: `output/playwright/studio-textures-bridge.png` and `studio-textures-site.png`.
+
+Final verification for this update: 410 tests passed across 46 files; production build, TypeScript, scoped lint and formatting passed. The latest textured report PNG was verified in local project storage at 882,814 characters, with the updated road-approach caption. Browser checks found no shader or runtime errors after the material correction.
